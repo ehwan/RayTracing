@@ -15,23 +15,12 @@ struct Ray
 
   vec3 normal;
   float t;
-  int bounce = 0;
+  float bounce = 0;
   GeometryObject *surface = nullptr;
 
   vec3 point() const
   {
     return origin + direction*t;
-  }
-  Ray refract( float index ) const
-  {
-    vec3 n = normal*normal.dot(direction);
-    vec3 tangent = direction - n;
-
-    Ray ray;
-    ray.direction = tangent*index + n;
-    ray.origin = point();
-
-    return ray;
   }
   Ray reflect() const
   {
@@ -40,6 +29,9 @@ struct Ray
     ray.origin = point();
     return ray;
   }
+};
+struct RayHit
+{
 };
 
 }

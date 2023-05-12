@@ -3,6 +3,7 @@
 #include <cmath>
 #include <utility>
 #include "global.hpp"
+#include <iostream>
 #include "ray.hpp"
 #include "math.hpp"
 
@@ -53,8 +54,7 @@ struct Sphere : GeometryObject
     }
 
     r.surface = this;
-    r.normal = r.point() - center;
-    r.normal.normalize();
+    r.normal = (r.point() - center)/radius;
   }
 };
 
@@ -80,7 +80,7 @@ struct Plane : GeometryObject
   }
   vec3 get_color( vec3 point ) override
   {
-    float width = 1.2f;
+    float width = 0.6f;
     int ix = (int)std::floor(point.x()/width);
     int iz = (int)std::floor(point.z()/width);
     if( (ix+iz)&1 )
@@ -88,6 +88,66 @@ struct Plane : GeometryObject
       return vec3(1,1,1);
     }
     return vec3(0.2f,0.2f,0.2f);
+  }
+};
+struct SkySphere : Sphere
+{
+  vec3 get_color( vec3 point ) override
+  {
+    /*
+    float angle_around_y = std::atan2(point.z(),point.x());
+    int ayi = (int)std::floor( angle_around_y/(0.3141592f) );
+    int yi = (int)std::floor( point.y()/(radius*3.141592f/10.0f) );
+    if( ((ayi+yi)&1) == 1 )
+    {
+      return vec3(0.6f,0.8f,1.0f);
+    }else {
+      return vec3(0.6f,0.8f,1.0f)*1.5f;
+    }
+    */
+    return vec3(1.0f,1.0f,1.0f);
+  }
+};
+
+struct Triangle : GeometryObject
+{
+  vec3 p0, p1, p2;
+  vec3 n0, n1, n2;
+
+  vec3 c0, c1, c2;
+  vec3 r0, r1, r2;
+  vec3 b;
+  float det;
+  float u, v, t;
+
+  void raycast( Ray &r ) override
+  {
+    c0 = p1 - p0;
+    c1 = p2 - p0;
+    c2 = -r.direction;
+    det = c0.dot( c1.cross(c2) );
+    if( std::abs(det) < 1e-3 ){ return; }
+    det = 1.0f / det;
+    b = r.origin - p0;
+    r0 = c1.cross(c2);
+    r1 = c2.cross(c0);
+    r2 = c0.cross(c1);
+
+    u = det*r0.dot(b);
+    v = det*r1.dot(b);
+    t = det*r2.dot(b);
+
+    if( u>0 && v>0 && u+v<1 && t>RAYHIT_EPS )
+    {
+      r.t = t;
+      r.surface = this;
+      r.normal = n0 + (n1-n0)*u + (n2-n0)*v;
+      r.normal.normalize();
+    }
+  }
+  vec3 get_color( vec3 point ) override
+  {
+    return color;
   }
 };
 

@@ -26,7 +26,7 @@ struct MirrorReflection : ReflectionModel
 };
 struct FuzzyMirrorReflection : ReflectionModel
 {
-  float fuzzyness = 0.0f;;
+  float fuzzyness = 0.0f;
   vec3 get_color( Ray &r, World &w, GeometryObject &g ) override;
 };
 
@@ -34,11 +34,28 @@ struct DiffuseReflection : ReflectionModel
 {
   vec3 get_color( Ray &r, World &w, GeometryObject &g ) override;
 };
+struct Refragtion : ReflectionModel
+{
+  float index = 1.0f;
+  vec3 get_color( Ray &r, World &w, GeometryObject &g ) override;
+};
+
+struct CombineReflection : ReflectionModel
+{
+  ReflectionModel *r1, *r2;
+  float s1 = 0.5f, s2=0.5f;
+
+  vec3 get_color( Ray &r, World &w, GeometryObject &g ) override;
+};
+struct FaceReflection : ReflectionModel
+{
+  ReflectionModel *front, *back;
+  vec3 get_color( Ray &r, World &w, GeometryObject &g ) override;
+};
 
 // light source that omit directional light
 struct DirectionalLightSource : ReflectionModel
 {
-  vec3 source_color;
   vec3 get_color( Ray &r, World &w, GeometryObject &g ) override;
 };
 
