@@ -80,7 +80,7 @@ struct Plane : GeometryObject
   }
   vec3 get_color( vec3 point ) override
   {
-    float width = 0.6f;
+    float width = 0.85f;
     int ix = (int)std::floor(point.x()/width);
     int iz = (int)std::floor(point.z()/width);
     if( (ix+iz)&1 )

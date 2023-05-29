@@ -40,17 +40,17 @@ int main()
   eh::Plane floor;
   eh::DiffuseReflection floor_reflect;
   floor.reflection = &floor_reflect;
-  floor.center = eh::vec3( 0.0f, 0.04f, 0.0f );
+  floor.center = eh::vec3( 0.0f, -1.0f, 0.0f );
   floor.normal = eh::vec3( 0.0f, 1.0f, 0.0f );
   world.objects.push_back( &floor );
 
   // world.camera.position( {0,0,0} );
   // world.camera.angle( {0.0f,-0.1f,0.0f} );
   world.camera.position( {0.2,1.0,2.0} );
-  world.camera.angle( {-0.5,-0.4,0} );
+  world.camera.angle( {-0.3,-0.0,0} );
   world.camera.perspective( 3.141592f/2.0f, 1.0f, 0.1 );
   world.camera.move( 2, 0.5f );
-  world.camera.move( 0, 0.2f );
+  //world.camera.move( 0, 0.2f );
 
 
 
@@ -74,6 +74,7 @@ int main()
 
   s3.center = eh::vec3( 0.0f, 0.0f, -5.0f );
   s3.radius = 1.0f;
+  s3.color = eh::vec3(1,1,1);
   s3.reflection = &s3_reflect;
 
   world.objects.push_back( &s1 );
@@ -83,32 +84,25 @@ int main()
   // mirror triangle
   eh::Triangle triangle;
   triangle.p0 = { 0.0f, 1.5f, -4.5f };
-  triangle.p1 = { -1.0f, 1.5f, -2.0f };
-  triangle.p2 = { 1.0f, 1.5f, -2.0f };
+  triangle.p1 = { -1.0f, 2.0f, -2.0f };
+  triangle.p2 = { 1.0f, 2.0f, -2.0f };
   triangle.n0 = { 0, -1, 0 };
   triangle.n1 = { 0, -1, 0 };
   triangle.n2 = { 0, -1, 0 };
   eh::MirrorReflection mirror_reflect;
-  triangle.reflection = &s3_reflect;
+  triangle.reflection = &mirror_reflect;
+  triangle.color = eh::vec3(1,1,1);
   world.objects.push_back( &triangle );
-
-/*
-  eh::Sphere s4;
-  s4.center = { 0, 2, -6 };
-  s4.radius = 1;
-  s4.reflection = &s3_reflect;
-  world.objects.push_back( &s4 );
-  */
 
 // rendering loop
   for( int i=0; i<200; ++i )
   {
     std::cout << i << "\n";
     world.render_once();
-    if( (i%2) == 0 )
+    if( (i%10) == 0 )
     {
       auto buffer = world.get_imagebuffer();
-      std::string filename = std::string("res/f") + std::to_string(i) + std::string(".png");
+      std::string filename = std::string("res/result") + std::to_string(i) + std::string(".png");
       lodepng::encode( filename, buffer, world.width, world.height, LodePNGColorType::LCT_RGB );
     }
   }

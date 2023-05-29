@@ -17,7 +17,7 @@ namespace eh {
   }
   inline std::pair<vec3,vec3> make_unit( vec3 unitz )
   {
-    vec3 unity = unitz.cross(vec3::Random());
+    vec3 unity = unitz.cross(vec3(unitz.y(),unitz.z(),unitz.x()));
     unity.normalize();
     vec3 unitx = unity.cross(unitz);
     return { unitx, unity };

@@ -13,9 +13,16 @@ struct Ray
   vec3 origin;
   vec3 direction;
 
+
+  // for ray-casting hittest
+  //
+  // normal vector at hit surface
   vec3 normal;
+  // hit point = origin + t * direction
   float t;
+  // bounce count for quitting recursive-raytracing
   float bounce = 0;
+  // hit surface object
   GeometryObject *surface = nullptr;
 
   vec3 point() const
@@ -29,9 +36,6 @@ struct Ray
     ray.origin = point();
     return ray;
   }
-};
-struct RayHit
-{
 };
 
 }
