@@ -17,7 +17,7 @@ struct GeometryObject
   vec3 color;
 
   virtual ~GeometryObject(){}
-  virtual void raycast( Ray& r ) = 0;
+  virtual RayHit raycast( Ray const& r ) = 0;
   virtual vec3 get_color( vec3 point ){ return color; }
 };
 
@@ -26,58 +26,85 @@ struct Sphere : GeometryObject
   vec3 center;
   float radius;
 
-  void raycast( Ray& r ) override
+  /*
+   * p0 : ray origin
+   * d : ray direction
+   * t : real number
+   * c0 : sphere center
+   * r : sphere radius
+   *
+   * (p0 + t*d - c0)^2 = r^2
+   *
+   * t^2*d^2 + 2*t*(p0-c0) + (p0-c0)^2 - r^2 = 0
+  */
+  RayHit raycast( Ray const& r ) override
   {
     const float a = r.direction.dot(r.direction);
-    const float b = r.direction.dot(r.origin-center);
+    const float half_b = r.direction.dot(r.origin-center);
     const float c = (r.origin-center).dot(r.origin-center) - radius*radius;
 
-    float Det = b*b - a*c;
+    float Det = half_b*half_b - a*c;
     if( Det < 0 )
     {
-      return;
+      return RayHit::no_hit();
     }
     Det = std::sqrt(Det);
 
 
     // t = (-b \pm Det)/a
-    const float t1 = (-b - Det)/a;
-    const float t2 = (-b + Det)/a;
+    RayHit ret;
+    const float t1 = (-half_b - Det)/a;
+    const float t2 = (-half_b + Det)/a;
     if( t1 > RAYHIT_EPS )
     {
-      r.t = t1;
+      ret.t = t1;
     }else if( t2 > RAYHIT_EPS )
     {
-      r.t = t2;
+      ret.t = t2;
     }else {
-      return;
+      return RayHit::no_hit();
     }
-
-    r.surface = this;
-    r.normal = (r.point() - center)/radius;
+    ret.normal = (ret.point(r) - center)/radius;
+    ret.surface = this;
+    return ret;
   }
 };
 
+/*
+ * p0 : ray origin
+ * d : ray direction
+ * t : real number
+ * c0 : Plane center
+ * n : Plane normal
+ *
+ * ( p0 + t*d - c0 ) dot n = 0
+ * t * (d dot n) = (c0 - p0) dot n
+ */
 struct Plane : GeometryObject
 {
   vec3 center;
   vec3 normal;
 
-  void raycast( Ray& r ) override
+  RayHit raycast( Ray const& r ) override
   {
-    float denom = r.direction.dot(normal);
+    const float denom = r.direction.dot(normal);
     if( std::abs(denom) < 1e-3 )
     {
-      return;
+      return RayHit::no_hit();
     }
-    float t = (center-r.origin).dot(normal)/denom;
+    const float t = (center-r.origin).dot(normal)/denom;
     if( t > RAYHIT_EPS )
     {
-      r.normal = normal;
-      r.surface = this;
-      r.t = t;
+      RayHit ret;
+      ret.t = t;
+      ret.normal = normal;
+      ret.surface = this;
+      return ret;
     }
+    return RayHit::no_hit();
   }
+
+  // checkered-tile coloring
   vec3 get_color( vec3 point ) override
   {
     float width = 0.85f;
@@ -109,45 +136,50 @@ struct SkySphere : Sphere
   }
 };
 
+/*
+ * r0 : ray origin
+ * d : ray direction
+ * t, u, v : real number
+ * p0, p1, p2 : 3 vertices of triangle
+ *
+ * r0 + t*d = p0 + u*(p1-p0) + v*(p2-p0)
+ *
+ *                     ( u )
+ * ( p1-p0, p2-p0, -d )( v ) = r0 - p0
+ *                     ( t )
+ */
 struct Triangle : GeometryObject
 {
   vec3 p0, p1, p2;
   vec3 n0, n1, n2;
 
-  vec3 c0, c1, c2;
-  vec3 r0, r1, r2;
-  vec3 b;
-  float det;
-  float u, v, t;
-
-  void raycast( Ray &r ) override
+  RayHit raycast( Ray const& r ) override
   {
-    c0 = p1 - p0;
-    c1 = p2 - p0;
-    c2 = -r.direction;
-    det = c0.dot( c1.cross(c2) );
-    if( std::abs(det) < 1e-3 ){ return; }
+    const vec3 c0 = p1 - p0;
+    const vec3 c1 = p2 - p0;
+    const vec3 c2 = -r.direction;
+    float det = c0.dot( c1.cross(c2) );
+    if( std::abs(det) < 1e-3 ){ return RayHit::no_hit(); }
     det = 1.0f / det;
-    b = r.origin - p0;
-    r0 = c1.cross(c2);
-    r1 = c2.cross(c0);
-    r2 = c0.cross(c1);
+    const vec3 b = r.origin - p0;
+    const vec3 r0 = c1.cross(c2);
+    const vec3 r1 = c2.cross(c0);
+    const vec3 r2 = c0.cross(c1);
 
-    u = det*r0.dot(b);
-    v = det*r1.dot(b);
-    t = det*r2.dot(b);
+    const float u = det*r0.dot(b);
+    const float v = det*r1.dot(b);
+    const float t = det*r2.dot(b);
 
     if( u>0 && v>0 && u+v<1 && t>RAYHIT_EPS )
     {
-      r.t = t;
-      r.surface = this;
-      r.normal = n0 + (n1-n0)*u + (n2-n0)*v;
-      r.normal.normalize();
+      RayHit ret;
+      ret.t = t;
+      ret.surface = this;
+      ret.normal = n0 + (n1-n0)*u + (n2-n0)*v;
+      ret.normal.normalize();
+      return ret;
     }
-  }
-  vec3 get_color( vec3 point ) override
-  {
-    return color;
+    return RayHit::no_hit();
   }
 };
 

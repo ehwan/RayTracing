@@ -56,20 +56,20 @@ struct World
   }
 
   // perform raycasting
-  void raycast( Ray &r )
+  RayHit raycast( Ray const& r )
   {
-    r.t = std::numeric_limits<float>::infinity();
-    r.surface = nullptr;
-    Ray test_ray = r;
+    RayHit ret;
+    ret.t = std::numeric_limits<float>::infinity();
+    ret.surface = nullptr;
     for( auto *g : objects )
     {
-      test_ray.surface = nullptr;
-      g->raycast(test_ray);
-      if( test_ray.surface != nullptr && test_ray.t < r.t )
+      auto rh = g->raycast(r);
+      if( rh.surface && rh.t < ret.t )
       {
-        r = test_ray;
+        ret = rh;
       }
     }
+    return ret;
   }
 
   // make random point on unit sphere
@@ -97,13 +97,15 @@ struct World
   }
 
   // raytrace and get color from this ray
-  vec3 get_color( Ray &r )
+  vec3 get_color( Ray const& r )
   {
+    // stop recursive-raytracing
     if( r.bounce >= max_bounce ){ return vec3::Zero(); }
 
-    raycast( r );
-    if( r.surface == nullptr ){ return vec3::Zero(); }
-    return r.surface->reflection->get_color(r,*this,*r.surface);
+    auto hit = raycast( r );
+    if( hit.surface == nullptr ){ return vec3::Zero(); }
+
+    return hit.surface->reflection->get_color( r, hit, *this );
   }
 
   using clock_type = std::chrono::high_resolution_clock;
