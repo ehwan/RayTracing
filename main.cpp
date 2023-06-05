@@ -98,7 +98,7 @@ int main()
   for( int i=0; i<200; ++i )
   {
     std::cout << i << "\n";
-    world.render_once();
+    world.render_once_balance();
     if( (i%10) == 0 )
     {
       auto buffer = world.get_imagebuffer();

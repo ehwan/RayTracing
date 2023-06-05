@@ -5,12 +5,15 @@
 #include "ray.hpp"
 #include "geometry.hpp"
 #include "reflection.hpp"
+#include "camera.hpp"
+
 #include <limits>
 #include <thread>
 #include <vector>
 #include <random>
 #include <utility>
-#include "camera.hpp"
+#include <chrono>
+#include <iostream>
 
 namespace eh {
 
@@ -21,9 +24,13 @@ struct World
   std::uniform_real_distribution<float> uniform_dist{ 0.0f, 1.0f };
 
   std::vector<GeometryObject*> objects;
-  std::vector<std::pair<vec3,int>> framebuffer;
+
   int max_bounce = 2;
   int sample_count = 10;
+
+  std::vector<vec3> framebuffer;
+  std::vector<int> render_count;
+  std::vector<float> render_time;
   int width = 100;
   int height = 100;
 
@@ -75,10 +82,19 @@ struct World
   }
   void clear_framebuffer()
   {
-    framebuffer.resize( width*height, {vec3::Zero(),0} );
+    framebuffer.resize( width*height, vec3::Zero() );
+    render_count.resize( width*height, 0 );
+    render_time.resize( width*height, 0.1f );
   }
+
+  using clock_type = std::chrono::high_resolution_clock;
+
+  // calculate color for one pixel (x,y)
+  // calculation time will be averaged and stored into render_time
+  // for balanced multi-thread
   void render_pixel( int x, int y )
   {
+    auto t0 = clock_type::now();
     vec2 rf = vec2::Random();
     float xf = (x + rf(0))/(float)width;
     float yf = (y + rf(1))/(float)height;
@@ -89,12 +105,108 @@ struct World
     ray.direction.normalize();
     auto color = get_color(ray);
 
-    auto &p = framebuffer[y*width+x];
-    p.first = p.first*(float)p.second/(float)(p.second+1) + color/(float)(p.second+1);
-    ++p.second;
+    auto& rendercount = render_count[y*width+x];
+    auto& rendertime = render_time[y*width+x];
+    auto& renderpixel = framebuffer[y*width+x];
+
+    auto t1 = clock_type::now();
+    auto dur = std::chrono::duration_cast< std::chrono::duration<float,std::ratio<1,1000>> >( t1 - t0 ).count();
+
+    // average new color data to old one
+    renderpixel = renderpixel*( (float)rendercount/(float)(rendercount+1) ) + color/(float)(rendercount+1);
+
+    // average calculation time
+    rendertime = (rendertime*rendercount + dur)/(float)(rendercount + 1);
+
+    ++rendercount;
+  }
+
+
+  // balanced multi-thread
+  // each thread would take balanced-size work based on *render_time*
+  void render_once_balance()
+  {
+    auto t0 = clock_type::now();
+
+    std::cout << "Render to Framebuffer Start\n";
+    int num_threads = 8;
+    struct worker_t
+    {
+      int xbegin, ybegin;
+      int xend, yend;
+      World *world;
+      int id;
+      void operator()()
+      {
+        int x = xbegin;
+        int y = ybegin;
+        while( 1 )
+        {
+          if( x==xend && y==yend ){ return; }
+          world->render_pixel( x, y );
+          if( ++x == world->width )
+          {
+            x = 0;
+            ++y;
+          }
+        }
+      }
+    };
+
+    // prefix-sum render_time
+    std::vector<float> rendertime_sum( width*height+1 );
+    rendertime_sum[0] = 0;
+    for( int i=1; i<rendertime_sum.size(); ++i )
+    {
+      rendertime_sum[i] = rendertime_sum[i-1] + render_time[i];
+    }
+
+    const float time_per_thread = rendertime_sum[height*width]/num_threads;
+    std::cout << "Total Calculation Time Predict : " << rendertime_sum[height*width] << "\n";
+
+    std::vector<std::thread> threads;
+    int begin = 0;
+    while( begin < width*height )
+    {
+      float time_for_this_thread;
+      int end;
+      for( end=begin; end<width*height; ++end )
+      {
+        time_for_this_thread = rendertime_sum[end] - rendertime_sum[begin];
+        if( time_for_this_thread > time_per_thread )
+        {
+          break;
+        }
+      }
+      worker_t worker;
+      worker.id = threads.size();
+      worker.world = this;
+      std::cout << "Time for Thread" << worker.id << ": " << time_for_this_thread << "\n";
+      std::cout << "(" << begin << ") -> (" << end << ")\n";
+
+      worker.xbegin = begin%width;
+      worker.ybegin = begin/width;
+      worker.xend = end%width;
+      worker.yend = end/width;
+
+      begin = end;
+
+      threads.emplace_back( std::thread(worker) );
+    }
+
+    for( auto &t : threads )
+    {
+      t.join();
+    }
+
+    auto dur = 
+      std::chrono::duration_cast< std::chrono::milliseconds >( clock_type::now() - t0 ).count();
+    std::cout << "Total Render Time : " << dur << "\n";
+    std::cout << "Render End\n\n";
   }
   void render_once()
   {
+    auto t0 = clock_type::now();
     int num_threads = 8;
     struct worker_t
     {
@@ -133,15 +245,12 @@ struct World
     {
       threads[t].join();
     }
-    /*
-    for( int y=0; y<height; ++y )
-    {
-      for( int x=0; x<width; ++x )
-      {
-        render_pixel( x, y );
-      }
-    }
-    */
+
+    auto dur = 
+      std::chrono::duration_cast< std::chrono::milliseconds >( clock_type::now() - t0 ).count();
+    std::cout << "Total Render Time : " << dur << "\n";
+    std::cout << "Render End\n\n";
+
   }
 
   std::vector<unsigned char> get_imagebuffer()
@@ -151,7 +260,7 @@ struct World
     {
       for( int x=0; x<width; ++x )
       {
-        auto vi = vec3_to_color(framebuffer[y*width+x].first);
+        auto vi = vec3_to_color(framebuffer[y*width+x]);
         ret[(y*width+x)*3 + 0] = (unsigned char)vi(0);
         ret[(y*width+x)*3 + 1] = (unsigned char)vi(1);
         ret[(y*width+x)*3 + 2] = (unsigned char)vi(2);
