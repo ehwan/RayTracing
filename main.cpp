@@ -1,3 +1,5 @@
+// compile flags
+// -lsfml-window -lsfml-system -lsfml-graphics -O2
 #include "global.hpp"
 #include "reflection.hpp"
 #include "world.hpp"
@@ -8,38 +10,60 @@
 #include <vector>
 #include <memory>
 
-int main()
+#include <thread>
+
+#include <SFML/Window.hpp>
+#include <SFML/Graphics.hpp>
+
+// image size
+int WIDTH = 400;
+int HEIGHT = 400;
+
+eh::World world;
+
+eh::SkySphere skysphere;
+eh::DirectionalLightSource sky_source;
+
+eh::Plane chekered_floor;
+eh::DiffuseReflection floor_reflect;
+
+eh::Sphere s1, s2, s3;
+eh::FuzzyMirrorReflection s1_reflect;
+eh::Refragtion s2_reflect;
+// eh::DiffuseReflection s2_reflect;
+eh::MirrorReflection s3_reflect;
+
+eh::Triangle triangle;
+eh::MirrorReflection triangle_reflect;
+
+sf::Texture texture;
+sf::Sprite sprite;
+
+std::thread render_thread;
+
+
+int WINDOW_WIDTH = 1000;
+int WINDOW_HEIGHT = 1000;
+sf::RenderWindow window;
+
+void init_raytracing_world()
 {
-  eh::World world( 400, 400 );
+  world.resize( WIDTH, HEIGHT );
   world.max_bounce = 3;
   world.sample_count = 10;
 
 // big sky sphere - light source
-  eh::SkySphere skysphere;
   skysphere.color = eh::vec3(1,1,1);
   skysphere.center = eh::vec3::Zero();
   skysphere.radius = 100.0f;
-  eh::DirectionalLightSource sky_source;
-  // eh::DiffuseReflection sky_reflect;
   skysphere.reflection = &sky_source;
   world.objects.push_back(&skysphere);
-  /*
-  eh::Sphere lightsource;
-  lightsource.center = { 3, 10, -0.7 };
-  lightsource.radius = 5;
-  lightsource.color = { 8,8,8 };
-  eh::DirectionalLightSource lightsource_reflect;
-  lightsource.reflection = &lightsource_reflect;
-  world.objects.push_back(&lightsource);
-  */
 
 // floor - checkered tiles
-  eh::Plane floor;
-  eh::DiffuseReflection floor_reflect;
-  floor.reflection = &floor_reflect;
-  floor.center = eh::vec3( 0.0f, -1.0f, 0.0f );
-  floor.normal = eh::vec3( 0.0f, 1.0f, 0.0f );
-  world.objects.push_back( &floor );
+  chekered_floor.reflection = &floor_reflect;
+  chekered_floor.center = eh::vec3( 0.0f, -1.0f, 0.0f );
+  chekered_floor.normal = eh::vec3( 0.0f, 1.0f, 0.0f );
+  world.objects.push_back( &chekered_floor );
 
   // world.camera.position( {0,0,0} );
   // world.camera.angle( {0.0f,-0.1f,0.0f} );
@@ -52,11 +76,6 @@ int main()
 
 
 // objects
-  eh::Sphere s1, s2, s3;
-  eh::FuzzyMirrorReflection s1_reflect;
-  eh::Refragtion s2_reflect;
-  // eh::DiffuseReflection s2_reflect;
-  eh::MirrorReflection s3_reflect;
   s1.center = eh::vec3( -2.05f, 0.0f, -5.0f );
   s1.radius = 1.0f;
   s1.color = eh::vec3( 1.0f, 0.6f, 0.4f );
@@ -79,30 +98,141 @@ int main()
   world.objects.push_back( &s3 );
 
   // mirror triangle
-  eh::Triangle triangle;
   triangle.p0 = { 0.0f, 1.5f, -4.5f };
   triangle.p1 = { -1.0f, 2.0f, -2.0f };
   triangle.p2 = { 1.0f, 2.0f, -2.0f };
   triangle.n0 = { 0, -1, 0 };
   triangle.n1 = { 0, -1, 0 };
   triangle.n2 = { 0, -1, 0 };
-  eh::MirrorReflection mirror_reflect;
-  triangle.reflection = &mirror_reflect;
+  triangle.reflection = &triangle_reflect;
   triangle.color = eh::vec3(1,1,1);
   world.objects.push_back( &triangle );
+}
 
-// rendering loop
-  for( int i=0; i<200; ++i )
+// move with WASDRF keys
+bool move()
+{
   {
-    std::cout << i << "\n";
-    world.render_once_balance();
-    if( (i%10) == 0 )
+    float spd = 1.0f/300.0f;
+    float anglespd = 1.0f/400.0f;
+    if( sf::Keyboard::isKeyPressed( sf::Keyboard::S ) )
     {
-      auto buffer = world.get_imagebuffer();
-      std::string filename = std::string("res/result") + std::to_string(i) + std::string(".png");
-      lodepng::encode( filename, buffer, world.width, world.height, LodePNGColorType::LCT_RGB );
+      if( sf::Mouse::isButtonPressed( sf::Mouse::Left ) )
+      {
+        auto angle = world.camera.angle();
+        angle.x() -= anglespd;
+        world.camera.angle(angle);
+        return true;
+      }else
+      {
+        world.camera.move(2,spd);
+        return true;
+      }
+    }else if( sf::Keyboard::isKeyPressed( sf::Keyboard::W ) )
+    {
+      if( sf::Mouse::isButtonPressed( sf::Mouse::Left ) )
+      {
+        auto angle = world.camera.angle();
+        angle.x() += anglespd;
+        world.camera.angle(angle);
+        return true;
+      }else
+      {
+        world.camera.move(2,-spd);
+        return true;
+      }
+    }else if( sf::Keyboard::isKeyPressed( sf::Keyboard::A ) )
+    {
+      if( sf::Mouse::isButtonPressed( sf::Mouse::Left ) )
+      {
+        auto angle = world.camera.angle();
+        angle.y() += anglespd;
+        world.camera.angle(angle);
+        return true;
+      }else
+      {
+        world.camera.move(0,-spd);
+        return true;
+      }
+    }else if( sf::Keyboard::isKeyPressed( sf::Keyboard::D ) )
+    {
+      if( sf::Mouse::isButtonPressed( sf::Mouse::Left ) )
+      {
+        auto angle = world.camera.angle();
+        angle.y() -= anglespd;
+        world.camera.angle(angle);
+        return true;
+      }else
+      {
+        world.camera.move(0,+spd);
+        return true;
+      }
+    }else if( sf::Keyboard::isKeyPressed( sf::Keyboard::R ) )
+    {
+      world.camera.move(1,spd);
+      return true;
+    }else if( sf::Keyboard::isKeyPressed( sf::Keyboard::F ) )
+    {
+      world.camera.move(1,-spd);
+      return true;
     }
+    return false;
   }
+}
+
+int main()
+{
+  init_raytracing_world();
+
+  bool rendering_loop = true;
+  // rendering thread
+  render_thread = std::thread(
+      [&]()
+      {
+        while( rendering_loop )
+        {
+          world.render_once_balance();
+        }
+      }
+  );
+
+  window.create( sf::VideoMode(WINDOW_WIDTH,WINDOW_HEIGHT), "Hello RayTracing" );
+
+  texture.create( WIDTH, HEIGHT );
+  //texture.setSmooth( true );
+  sprite.setTexture( texture );
+  sprite.setPosition( 0, 0 );
+  sprite.setScale( (float)WINDOW_WIDTH/(float)WIDTH, (float)WINDOW_HEIGHT/(float)HEIGHT );
+
+  while( window.isOpen() )
+  {
+    sf::Event event;
+    while( window.pollEvent(event) )
+    {
+      if( event.type == sf::Event::Closed )
+      {
+        window.close();
+      }
+    }
+    if( move() )
+    {
+      world.clear_framebuffer();
+    }
+    window.clear();
+
+    //bool locked = render_mutex.try_lock();
+    //if( locked )
+    {
+      auto fb = world.get_imagebuffer(true);
+      //render_mutex.unlock();
+      texture.update( fb.data() );
+    }
+    window.draw( sprite );
+    window.display();
+  }
+
+  rendering_loop = false;
+  render_thread.join();
 
   return 0;
 }

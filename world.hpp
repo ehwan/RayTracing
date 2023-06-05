@@ -47,12 +47,16 @@ struct World
     width = width_;
     height = height_;
     clear_framebuffer();
+    framebuffer.resize( width*height );
+    render_count.resize( width*height );
+    render_time.resize( width*height );
+    clear_framebuffer();
   }
   void clear_framebuffer()
   {
-    framebuffer.resize( width*height, vec3::Zero() );
-    render_count.resize( width*height, 0 );
-    render_time.resize( width*height, 0.1f );
+    std::fill( framebuffer.begin(), framebuffer.end(), vec3::Zero() );
+    std::fill( render_count.begin(), render_count.end(), 0 );
+    std::fill( render_time.begin(), render_time.end(), 0.1f );
   }
 
   // perform raycasting
@@ -70,30 +74,6 @@ struct World
       }
     }
     return ret;
-  }
-
-  // make random point on unit sphere
-  vec3 random_sphere()
-  {
-    // angle around y axis
-    const float angle1 = uniform_dist(mt_twister)*2*PI;
-    // angle above xz plane
-    const float angle2 = (uniform_dist(mt_twister)-0.5)*PI;
-
-    const float c = std::cos(angle1);
-    return { std::cos(angle2)*c, std::sin(angle1), std::sin(angle2)*c };
-  }
-
-  // make random point on unit semi-sphere on xy plane (postive)
-  vec3 random_semisphere()
-  {
-    // angle around z axis
-    const float angle1 = uniform_dist(mt_twister)*2*PI;
-    // angle above xy plane
-    const float angle2 = uniform_dist(mt_twister)*0.5f*PI;
-
-    const float c = std::cos(angle1);
-    return { std::cos(angle2)*c, std::sin(angle2)*c, std::sin(angle1) };
   }
 
   // raytrace and get color from this ray
@@ -135,6 +115,8 @@ struct World
 
     // average new color data to old one
     renderpixel = renderpixel*( (float)rendercount/(float)(rendercount+1) ) + color/(float)(rendercount+1);
+
+    if( rendercount == 0 ){ rendertime = 0; }
 
     // average calculation time
     rendertime = (rendertime*rendercount + dur)/(float)(rendercount + 1);
@@ -265,17 +247,23 @@ struct World
 
   }
 
-  std::vector<unsigned char> get_imagebuffer()
+  std::vector<unsigned char> get_imagebuffer( bool alpha=false )
   {
-    std::vector<unsigned char> ret( width*height*3 );
-    for( int y=0; y<height; ++y )
+    std::vector<unsigned char> ret( alpha ? width*height*4 : width*height*3 );
+    for( int i=0; i<framebuffer.size(); ++i )
     {
-      for( int x=0; x<width; ++x )
+      auto vi = vec3_to_color( framebuffer[i] );
+      if( alpha )
       {
-        auto vi = vec3_to_color(framebuffer[y*width+x]);
-        ret[(y*width+x)*3 + 0] = (unsigned char)vi(0);
-        ret[(y*width+x)*3 + 1] = (unsigned char)vi(1);
-        ret[(y*width+x)*3 + 2] = (unsigned char)vi(2);
+        ret[ 4*i + 0 ] = (unsigned char)vi(0);
+        ret[ 4*i + 1 ] = (unsigned char)vi(1);
+        ret[ 4*i + 2 ] = (unsigned char)vi(2);
+        ret[ 4*i + 3 ] = (unsigned char)255;
+      }else
+      {
+        ret[ 3*i + 0 ] = (unsigned char)vi(0);
+        ret[ 3*i + 1 ] = (unsigned char)vi(1);
+        ret[ 3*i + 2 ] = (unsigned char)vi(2);
       }
     }
     return ret;
