@@ -22,7 +22,7 @@ struct World
   constexpr static float PI = 3.141592f;
 
   // random generators
-  std::mt19937 mt_twister{ std::random_device{}() };
+  static thread_local std::mt19937 mt_twister;
   std::uniform_real_distribution<float> uniform_dist{ 0.0f, 1.0f };
 
   std::vector<GeometryObject*> objects;
@@ -96,9 +96,8 @@ struct World
   void render_pixel( int x, int y )
   {
     auto t0 = clock_type::now();
-    vec2 rf = vec2::Random();
-    float xf = (x + rf(0))/(float)width;
-    float yf = (y + rf(1))/(float)height;
+    float xf = (x + uniform_dist(mt_twister))/(float)width;
+    float yf = (y + uniform_dist(mt_twister))/(float)height;
     vec3 point = camera(xf,yf);
     Ray ray;
     ray.origin = point;
@@ -274,5 +273,6 @@ struct World
     return ret;
   }
 };
+
 
 }

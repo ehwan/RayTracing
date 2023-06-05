@@ -115,7 +115,7 @@ float dt = 0;
 bool move()
 {
   {
-    float spd = 1.0f*dt;
+    float spd = 2.0f*dt;
     float anglespd = 1.0f*dt;
     if( sf::Keyboard::isKeyPressed( sf::Keyboard::S ) )
     {

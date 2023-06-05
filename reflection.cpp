@@ -5,6 +5,7 @@
 
 namespace eh
 {
+thread_local std::mt19937 World::mt_twister = std::mt19937{ std::random_device{}() };
 
 vec3 MirrorReflection::get_color( Ray const& r, RayHit const& hit, World &w )
 {
