@@ -54,9 +54,9 @@ struct World
   }
   void clear_framebuffer()
   {
-    std::fill( framebuffer.begin(), framebuffer.end(), vec3::Zero() );
+    //std::fill( framebuffer.begin(), framebuffer.end(), vec3::Zero() );
     std::fill( render_count.begin(), render_count.end(), 0 );
-    std::fill( render_time.begin(), render_time.end(), 0.1f );
+    //std::fill( render_time.begin(), render_time.end(), 0.1f );
   }
 
   // perform raycasting
@@ -113,10 +113,15 @@ struct World
     auto t1 = clock_type::now();
     auto dur = std::chrono::duration_cast< std::chrono::duration<float,std::ratio<1,1000>> >( t1 - t0 ).count();
 
+    if( rendercount == 0 )
+    {
+      rendertime = 0;
+      renderpixel = vec3::Zero();
+    }
+
     // average new color data to old one
     renderpixel = renderpixel*( (float)rendercount/(float)(rendercount+1) ) + color/(float)(rendercount+1);
 
-    if( rendercount == 0 ){ rendertime = 0; }
 
     // average calculation time
     rendertime = (rendertime*rendercount + dur)/(float)(rendercount + 1);
