@@ -109,12 +109,14 @@ void init_raytracing_world()
   world.objects.push_back( &triangle );
 }
 
+float dt = 0;
+
 // move with WASDRF keys
 bool move()
 {
   {
-    float spd = 1.0f/300.0f;
-    float anglespd = 1.0f/400.0f;
+    float spd = 1.0f*dt;
+    float anglespd = 1.0f*dt;
     if( sf::Keyboard::isKeyPressed( sf::Keyboard::S ) )
     {
       if( sf::Mouse::isButtonPressed( sf::Mouse::Left ) )
@@ -204,6 +206,7 @@ int main()
   sprite.setPosition( 0, 0 );
   sprite.setScale( (float)WINDOW_WIDTH/(float)WIDTH, (float)WINDOW_HEIGHT/(float)HEIGHT );
 
+  auto t0 = std::chrono::system_clock::now();
   while( window.isOpen() )
   {
     sf::Event event;
@@ -214,6 +217,11 @@ int main()
         window.close();
       }
     }
+    auto t1 = std::chrono::system_clock::now();
+    dt = std::chrono::duration_cast<
+      std::chrono::duration<float,std::ratio<1,1>>
+    >( t1 - t0 ).count();
+    t0 = t1;
     if( move() )
     {
       world.clear_framebuffer();
