@@ -9,6 +9,7 @@ namespace eh
 class Eye
 {
 protected:
+  // x, y, z basis vectors
   vec3 axis_[3];
   vec3 position_;
   float aspect_ratio_;
@@ -36,7 +37,9 @@ public:
   {
     position_ = p;
   }
-  void move( unsigned int i , float factor )
+
+  // move along i'th axis
+  void move( unsigned int i , float factor=1.0f )
   {
     position_ += axis_[ i ] * factor;
   }
@@ -80,6 +83,8 @@ public:
     return operator()(p);
   }
 };
+
+// camera with angle from each axis
 class EyeAngle
   : public Eye
 {

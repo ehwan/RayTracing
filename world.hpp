@@ -20,6 +20,8 @@ namespace eh {
 struct World
 {
   constexpr static float PI = 3.141592f;
+
+  // random generators
   std::mt19937 mt_twister{ std::random_device{}() };
   std::uniform_real_distribution<float> uniform_dist{ 0.0f, 1.0f };
 
@@ -36,6 +38,24 @@ struct World
 
   EyeAngle camera;
 
+  World( int width_=100, int height_=100 )
+  {
+    resize( width_, height_ );
+  }
+  void resize( int width_, int height_ )
+  {
+    width = width_;
+    height = height_;
+    clear_framebuffer();
+  }
+  void clear_framebuffer()
+  {
+    framebuffer.resize( width*height, vec3::Zero() );
+    render_count.resize( width*height, 0 );
+    render_time.resize( width*height, 0.1f );
+  }
+
+  // perform raycasting
   void raycast( Ray &r )
   {
     r.t = std::numeric_limits<float>::infinity();
@@ -52,6 +72,7 @@ struct World
     }
   }
 
+  // make random point on unit sphere
   vec3 random_sphere()
   {
     // angle around y axis
@@ -62,6 +83,8 @@ struct World
     const float c = std::cos(angle1);
     return { std::cos(angle2)*c, std::sin(angle1), std::sin(angle2)*c };
   }
+
+  // make random point on unit semi-sphere on xy plane (postive)
   vec3 random_semisphere()
   {
     // angle around z axis
@@ -72,6 +95,8 @@ struct World
     const float c = std::cos(angle1);
     return { std::cos(angle2)*c, std::sin(angle2)*c, std::sin(angle1) };
   }
+
+  // raytrace and get color from this ray
   vec3 get_color( Ray &r )
   {
     if( r.bounce >= max_bounce ){ return vec3::Zero(); }
@@ -79,12 +104,6 @@ struct World
     raycast( r );
     if( r.surface == nullptr ){ return vec3::Zero(); }
     return r.surface->reflection->get_color(r,*this,*r.surface);
-  }
-  void clear_framebuffer()
-  {
-    framebuffer.resize( width*height, vec3::Zero() );
-    render_count.resize( width*height, 0 );
-    render_time.resize( width*height, 0.1f );
   }
 
   using clock_type = std::chrono::high_resolution_clock;
@@ -124,31 +143,25 @@ struct World
 
   // balanced multi-thread
   // each thread would take balanced-size work based on *render_time*
-  void render_once_balance()
+  void render_once_balance( int num_threads=8 )
   {
     auto t0 = clock_type::now();
 
     std::cout << "Render to Framebuffer Start\n";
-    int num_threads = 8;
+
+    // function object for thread
     struct worker_t
     {
-      int xbegin, ybegin;
-      int xend, yend;
       World *world;
       int id;
+
+      int begin, end;
+
       void operator()()
       {
-        int x = xbegin;
-        int y = ybegin;
-        while( 1 )
+        for( ; begin<end; ++begin )
         {
-          if( x==xend && y==yend ){ return; }
-          world->render_pixel( x, y );
-          if( ++x == world->width )
-          {
-            x = 0;
-            ++y;
-          }
+          world->render_pixel( begin%world->width, begin/world->height );
         }
       }
     };
@@ -184,14 +197,11 @@ struct World
       std::cout << "Time for Thread" << worker.id << ": " << time_for_this_thread << "\n";
       std::cout << "(" << begin << ") -> (" << end << ")\n";
 
-      worker.xbegin = begin%width;
-      worker.ybegin = begin/width;
-      worker.xend = end%width;
-      worker.yend = end/width;
+      worker.begin = begin;
+      worker.end = end;
+      threads.emplace_back( std::thread(worker) );
 
       begin = end;
-
-      threads.emplace_back( std::thread(worker) );
     }
 
     for( auto &t : threads )

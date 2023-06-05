@@ -10,12 +10,9 @@
 
 int main()
 {
-  eh::World world;
+  eh::World world( 400, 400 );
   world.max_bounce = 3;
   world.sample_count = 10;
-  world.width = 400;
-  world.height = 400;
-  world.clear_framebuffer();
 
 // big sky sphere - light source
   eh::SkySphere skysphere;
