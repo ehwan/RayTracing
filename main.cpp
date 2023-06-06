@@ -28,7 +28,7 @@ eh::Plane chekered_floor;
 eh::DiffuseReflection floor_reflect;
 
 eh::Sphere s1, s2, s3;
-eh::FuzzyMirrorReflection s1_reflect;
+eh::DiffuseReflection s1_reflect;
 eh::Refragtion s2_reflect;
 // eh::DiffuseReflection s2_reflect;
 eh::MirrorReflection s3_reflect;
@@ -79,7 +79,6 @@ void init_raytracing_world()
   s1.center = eh::vec3( -2.05f, 0.0f, -5.0f );
   s1.radius = 1.0f;
   s1.color = eh::vec3( 1.0f, 0.6f, 0.4f );
-  s1_reflect.fuzzyness = 0.25f;
   s1.reflection = &s1_reflect;
 
   s2.center = eh::vec3( 2.05f, 0.0f, -5.0f );

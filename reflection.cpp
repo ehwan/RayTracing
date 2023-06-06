@@ -42,6 +42,8 @@ vec3 FuzzyMirrorReflection::get_color( Ray const& r, RayHit const& hit, World &w
   return color.array() * hit.surface->get_color(hit.point(r)).array();
 }
 
+
+// Uniform Lambertial Diffusive Reflection
 vec3 DiffuseReflection::get_color( Ray const& r, RayHit const& hit, World &w )
 {
   // diffusive random rays
@@ -52,16 +54,21 @@ vec3 DiffuseReflection::get_color( Ray const& r, RayHit const& hit, World &w )
     diffusive_ray.origin = hit.point(r);
     diffusive_ray.bounce = r.bounce + 1;
 
-    float angle = std::sin( w.uniform_dist(w.mt_twister)*w.PI/2.0f )*w.PI/2.0f;
-    float angle2 = w.uniform_dist(w.mt_twister);
-    float z = std::cos(angle);
-    float x = std::cos(angle2)*std::sin(angle);
-    float y = std::sin(angle2)*std::sin(angle);
+    // angle on xy plane
+    float angle = w.uniform_dist( World::mt_twister );
+
+    // sin theta from normal vector
+    float sinZ = w.uniform_dist( World::mt_twister );
+    float cosZ = std::sqrt( 1.0f - sinZ*sinZ );
+
+    float z = cosZ;
+    float x = sinZ*std::cos(angle);
+    float y = sinZ*std::sin(angle);
+
+    // make unit vectors from normal vector
     vec3 unitx, unity;
     std::tie(unitx,unity) = make_unit(hit.normal);
     diffusive_ray.direction = x*unitx + y*unity + z*hit.normal;
-    // diffusive_ray.direction = w.random_sphere() + r.normal;
-    // diffusive_ray.direction.normalize();
     color += w.get_color(diffusive_ray);
   }
   color = color/(float)w.sample_count;
