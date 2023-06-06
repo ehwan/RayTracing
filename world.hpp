@@ -46,7 +46,6 @@ struct World
   {
     width = width_;
     height = height_;
-    clear_framebuffer();
     framebuffer.resize( width*height );
     render_count.resize( width*height );
     render_time.resize( width*height );
@@ -149,7 +148,7 @@ struct World
       {
         for( ; begin<end; ++begin )
         {
-          world->render_pixel( begin%world->width, begin/world->height );
+          world->render_pixel( begin%world->width, begin/world->width );
         }
       }
     };
