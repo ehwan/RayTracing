@@ -201,6 +201,9 @@ struct World
     std::cout << "Total Render Time : " << dur << "\n";
     std::cout << "Render End\n\n";
   }
+
+  // each thread will take equal number of pixels;
+  // Not Balanced
   void render_once()
   {
     auto t0 = clock_type::now();

@@ -19,96 +19,100 @@
 int WIDTH = 400;
 int HEIGHT = 400;
 
-eh::World world;
+struct BaseDemoWorld
+  : eh::World
+{
+  eh::SkySphere skysphere;
+  eh::DirectionalLightSource sky_source;
 
-eh::SkySphere skysphere;
-eh::DirectionalLightSource sky_source;
+  eh::Plane chekered_floor;
+  eh::DiffuseReflection floor_reflect;
 
-eh::Plane chekered_floor;
-eh::DiffuseReflection floor_reflect;
+  eh::Sphere s1, s2, s3;
+  eh::DiffuseReflection s1_reflect;
+  eh::Refragtion s2_reflect;
+  // eh::DiffuseReflection s2_reflect;
+  eh::MirrorReflection s3_reflect;
 
-eh::Sphere s1, s2, s3;
-eh::DiffuseReflection s1_reflect;
-eh::Refragtion s2_reflect;
-// eh::DiffuseReflection s2_reflect;
-eh::MirrorReflection s3_reflect;
+  eh::Triangle triangle;
+  eh::MirrorReflection triangle_reflect;
 
-eh::Triangle triangle;
-eh::MirrorReflection triangle_reflect;
+  BaseDemoWorld()
+    : eh::World()
+  {
+    this->resize( WIDTH, HEIGHT );
+    this->max_bounce = 3;
+    this->sample_count = 10;
+
+    // big sky sphere - light source
+    skysphere.color = eh::vec3(1,1,1);
+    skysphere.center = eh::vec3::Zero();
+    skysphere.radius = 100.0f;
+    skysphere.reflection = &sky_source;
+    this->objects.push_back(&skysphere);
+
+    // floor - checkered tiles
+    chekered_floor.reflection = &floor_reflect;
+    chekered_floor.center = eh::vec3( 0.0f, -1.0f, 0.0f );
+    chekered_floor.normal = eh::vec3( 0.0f, 1.0f, 0.0f );
+    this->objects.push_back( &chekered_floor );
+
+
+    // camera position init
+    this->camera.position( {0.2,1.0,2.0} );
+    this->camera.angle( {-0.3,-0.0,0} );
+    this->camera.perspective( 3.141592f/2.0f, 1.0f, 0.1 );
+    this->camera.move( 2, 0.5f );
+
+
+
+    // objects
+    s1.center = eh::vec3( -2.05f, 0.0f, -5.0f );
+    s1.radius = 1.0f;
+    s1.color = eh::vec3( 1.0f, 0.6f, 0.4f );
+    s1.reflection = &s1_reflect;
+
+    s2.center = eh::vec3( 2.05f, 0.0f, -5.0f );
+    s2.radius = 1.0f;
+    s2.color = eh::vec3( 0.6f, 0.8f, 1.0f );
+    s2.reflection = &s2_reflect;
+    s2_reflect.index = 0.85f;
+
+    s3.center = eh::vec3( 0.0f, 0.0f, -5.0f );
+    s3.radius = 1.0f;
+    s3.color = eh::vec3(1,1,1);
+    s3.reflection = &s3_reflect;
+
+    this->objects.push_back( &s1 );
+    this->objects.push_back( &s2 );
+    this->objects.push_back( &s3 );
+
+    // mirror triangle
+    triangle.p0 = { 0.0f, 1.5f, -4.5f };
+    triangle.p1 = { -1.0f, 2.0f, -2.0f };
+    triangle.p2 = { 1.0f, 2.0f, -2.0f };
+    triangle.n0 = { 0, -1, 0 };
+    triangle.n1 = { 0, -1, 0 };
+    triangle.n2 = { 0, -1, 0 };
+    triangle.reflection = &triangle_reflect;
+    triangle.color = eh::vec3(1,1,1);
+    this->objects.push_back( &triangle );
+  }
+};
+
 
 sf::Texture texture;
 sf::Sprite sprite;
 
 std::thread render_thread;
 
-
 int WINDOW_WIDTH = 1000;
 int WINDOW_HEIGHT = 1000;
 sf::RenderWindow window;
 
-void init_raytracing_world()
-{
-  world.resize( WIDTH, HEIGHT );
-  world.max_bounce = 3;
-  world.sample_count = 10;
-
-// big sky sphere - light source
-  skysphere.color = eh::vec3(1,1,1);
-  skysphere.center = eh::vec3::Zero();
-  skysphere.radius = 100.0f;
-  skysphere.reflection = &sky_source;
-  world.objects.push_back(&skysphere);
-
-// floor - checkered tiles
-  chekered_floor.reflection = &floor_reflect;
-  chekered_floor.center = eh::vec3( 0.0f, -1.0f, 0.0f );
-  chekered_floor.normal = eh::vec3( 0.0f, 1.0f, 0.0f );
-  world.objects.push_back( &chekered_floor );
-
-  // world.camera.position( {0,0,0} );
-  // world.camera.angle( {0.0f,-0.1f,0.0f} );
-  world.camera.position( {0.2,1.0,2.0} );
-  world.camera.angle( {-0.3,-0.0,0} );
-  world.camera.perspective( 3.141592f/2.0f, 1.0f, 0.1 );
-  world.camera.move( 2, 0.5f );
-  //world.camera.move( 0, 0.2f );
-
-
-
-// objects
-  s1.center = eh::vec3( -2.05f, 0.0f, -5.0f );
-  s1.radius = 1.0f;
-  s1.color = eh::vec3( 1.0f, 0.6f, 0.4f );
-  s1.reflection = &s1_reflect;
-
-  s2.center = eh::vec3( 2.05f, 0.0f, -5.0f );
-  s2.radius = 1.0f;
-  s2.color = eh::vec3( 0.6f, 0.8f, 1.0f );
-  s2.reflection = &s2_reflect;
-  s2_reflect.index = 0.85f;
-
-  s3.center = eh::vec3( 0.0f, 0.0f, -5.0f );
-  s3.radius = 1.0f;
-  s3.color = eh::vec3(1,1,1);
-  s3.reflection = &s3_reflect;
-
-  world.objects.push_back( &s1 );
-  world.objects.push_back( &s2 );
-  world.objects.push_back( &s3 );
-
-  // mirror triangle
-  triangle.p0 = { 0.0f, 1.5f, -4.5f };
-  triangle.p1 = { -1.0f, 2.0f, -2.0f };
-  triangle.p2 = { 1.0f, 2.0f, -2.0f };
-  triangle.n0 = { 0, -1, 0 };
-  triangle.n1 = { 0, -1, 0 };
-  triangle.n2 = { 0, -1, 0 };
-  triangle.reflection = &triangle_reflect;
-  triangle.color = eh::vec3(1,1,1);
-  world.objects.push_back( &triangle );
-}
-
 float dt = 0;
+
+BaseDemoWorld world;
 
 // move with WASDRF keys
 bool move()
@@ -183,8 +187,6 @@ bool move()
 
 int main()
 {
-  init_raytracing_world();
-
   bool rendering_loop = true;
   // rendering thread
   render_thread = std::thread(
@@ -221,19 +223,16 @@ int main()
       std::chrono::duration<float,std::ratio<1,1>>
     >( t1 - t0 ).count();
     t0 = t1;
+
+    // if not move, accumulate to current framebuffer
     if( move() )
     {
       world.clear_framebuffer();
     }
     window.clear();
 
-    //bool locked = render_mutex.try_lock();
-    //if( locked )
-    {
-      auto fb = world.get_imagebuffer(true);
-      //render_mutex.unlock();
-      texture.update( fb.data() );
-    }
+    auto fb = world.get_imagebuffer(true);
+    texture.update( fb.data() );
     window.draw( sprite );
     window.display();
   }
