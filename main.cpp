@@ -37,6 +37,7 @@ SphereDemo world( WIDTH, HEIGHT );
 // move with WASDRF keys
 bool move()
 {
+  world.camera_light_sphere.center = world.camera.position();
   {
     float spd = 2.0f*dt;
     float anglespd = 1.0f*dt;

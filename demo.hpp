@@ -11,10 +11,15 @@ struct BaseDemoWorld
   : eh::World
 {
   eh::SkySphere skysphere;
+  //eh::DiffuseReflection sky_source;
   eh::DirectionalLightSource sky_source;
 
   eh::Plane chekered_floor;
   eh::DiffuseReflection floor_reflect;
+
+  // light source follow camera
+  eh::Sphere camera_light_sphere;
+  eh::DirectionalLightSource camera_light_source;
 
   BaseDemoWorld( int W, int H )
     : eh::World( W, H )
@@ -23,7 +28,7 @@ struct BaseDemoWorld
     this->sample_count = 10;
 
     // big sky sphere - light source
-    skysphere.color = eh::vec3(1,1,1);
+    skysphere.color = eh::vec3(0.4,0.4,0.4);
     skysphere.center = eh::vec3::Zero();
     skysphere.radius = 100.0f;
     skysphere.reflection = &sky_source;
@@ -39,8 +44,14 @@ struct BaseDemoWorld
     // camera position init
     this->camera.position( {0.2,1.0,2.0} );
     this->camera.angle( {-0.3,-0.0,0} );
-    this->camera.perspective( 3.141592f/2.0f, 1.0f, 0.1 );
+    this->camera.perspective( 3.141592f/2.0f, 1.0f, 1.0f );
     this->camera.move( 2, 0.5f );
+
+    camera_light_sphere.reflection = &camera_light_source;
+    camera_light_sphere.radius = 0.8f;
+    camera_light_sphere.color = eh::vec3(1,0.5,0.7);
+    camera_light_sphere.center = this->camera.position();
+    this->objects.push_back( &camera_light_sphere );
   }
 };
 
