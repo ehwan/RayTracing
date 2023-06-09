@@ -55,7 +55,7 @@ struct World
   {
     //std::fill( framebuffer.begin(), framebuffer.end(), vec3::Zero() );
     std::fill( render_count.begin(), render_count.end(), 0 );
-    //std::fill( render_time.begin(), render_time.end(), 0.1f );
+    std::fill( render_time.begin(), render_time.end(), 0.1f );
   }
 
   // perform raycasting

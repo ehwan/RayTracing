@@ -55,7 +55,7 @@ vec3 DiffuseReflection::get_color( Ray const& r, RayHit const& hit, World &w )
     diffusive_ray.bounce = r.bounce + 1;
 
     // angle on xy plane
-    float angle = w.uniform_dist( World::mt_twister );
+    float angle = w.uniform_dist( World::mt_twister )*w.PI*2;
 
     // sin theta from normal vector
     float sinZ = w.uniform_dist( World::mt_twister );
