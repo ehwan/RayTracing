@@ -29,7 +29,7 @@ vec3 FuzzyMirrorReflection::get_color( Ray const& r, RayHit const& hit, World &w
 
     Ray newray( hit.point(r), (x*unitx+y*unity+z*reflection).normalized(), r.thread_id );
     newray.bounce = r.bounce + 0.3;
-    if( newray.direction().dot(hit.normal) < 0 ){ continue; }
+    // if( newray.direction().dot(hit.normal) < 0 ){ continue; }
 
     ++cnt;
     color += w.get_color(newray);

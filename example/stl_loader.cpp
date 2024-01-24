@@ -12,7 +12,7 @@ std::vector<Triangle> load_stl_ascii( std::ifstream &ifs )
   throw std::runtime_error("ASCII STL is not supported yet");
   return {};
 }
-std::vector<Triangle> load_stl_binary( std::ifstream &ifs )
+std::vector<Triangle> load_stl_binary( std::ifstream &ifs, bool vertex_normal )
 {
   ifs.seekg( 80, std::ios::beg );
   uint32_t triangle_count;
@@ -31,9 +31,66 @@ std::vector<Triangle> load_stl_binary( std::ifstream &ifs )
     triangles[i].n0 = triangles[i].n1 = triangles[i].n2 = normal;
     ifs.seekg( 2, std::ios::cur );
   }
-  return triangles;
+
+  if( vertex_normal == false ){ return triangles; }
+
+  // for vertex-normals
+  std::vector< std::pair<vec3,vec3> > vertex_normals;
+  vertex_normals.reserve( triangles.size() * 3 );
+  for( auto &t : triangles )
+  {
+    vertex_normals.push_back( std::make_pair( t.p0, t.n0 ) );
+    vertex_normals.push_back( std::make_pair( t.p1, t.n1 ) );
+    vertex_normals.push_back( std::make_pair( t.p2, t.n2 ) );
+  }
+
+  std::vector<Triangle> new_triangles = triangles;
+  for( int i=0; i<new_triangles.size(); ++i )
+  {
+    vec3 normal = vec3::Zero();
+    int cnt = 0;
+    for( auto const& vn : vertex_normals )
+    {
+      if( (new_triangles[i].p0-vn.first).squaredNorm() < 1e-6 )
+      {
+        normal += vn.second;
+        ++cnt;
+      }
+    }
+    new_triangles[i].n0 = normal / cnt;
+
+    normal = vec3::Zero();
+    cnt = 0;
+    for( auto const& vn : vertex_normals )
+    {
+      if( (new_triangles[i].p1-vn.first).squaredNorm() < 1e-6 )
+      {
+        normal += vn.second;
+        ++cnt;
+      }
+    }
+    new_triangles[i].n1 = normal / cnt;
+
+    normal = vec3::Zero();
+    cnt = 0;
+    for( auto const& vn : vertex_normals )
+    {
+      if( (new_triangles[i].p2-vn.first).squaredNorm() < 1e-6 )
+      {
+        normal += vn.second;
+        ++cnt;
+      }
+    }
+    new_triangles[i].n2 = normal / cnt;
+
+    new_triangles[i].n0.normalize();
+    new_triangles[i].n1.normalize();
+    new_triangles[i].n2.normalize();
+  }
+
+  return new_triangles;
 }
-std::vector<Triangle> load_stl( std::string const& filename )
+std::vector<Triangle> load_stl( std::string const& filename, bool vertex_normal )
 {
   std::ifstream ifs( filename, std::ios::binary );
   char first_five_bytes[5];
@@ -44,7 +101,7 @@ std::vector<Triangle> load_stl( std::string const& filename )
   {
     // binary
     ifs = std::ifstream( filename, std::ios::binary );
-    return load_stl_binary( ifs );
+    return load_stl_binary( ifs, vertex_normal );
   }
   ifs = std::ifstream( filename );
   return load_stl_ascii( ifs );

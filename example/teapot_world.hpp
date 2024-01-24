@@ -84,11 +84,11 @@ public:
     this->insert( {&geometries.floor2, &reflections.floor} );
     for( auto &t : geometries.teapot )
     {
-      this->insert( {&t, &reflections.diffusive} );
+      this->insert( {&t, &reflections.mirror} );
     }
-    reflections.fuzzy_mirror.fuzzyness = 0.3f;
-    reflections.fuzzy_mirror.sample_count = 10;
-    reflections.fuzzy_mirror.color = vec3(1.2f,0.8f,0.6f);
+    reflections.fuzzy_mirror.fuzzyness = 0.03f;
+    reflections.fuzzy_mirror.sample_count = 3;
+    reflections.fuzzy_mirror.color = vec3(0.8f,0.8f,0.8f);
 
     reflections.combine.r1 = &reflections.water_refragtion;
     reflections.combine.r2 = &reflections.diffusive;
@@ -108,7 +108,7 @@ public:
     reflections.water_refragtion.color = eh::vec3( 0.6f, 0.8f, 1.0f );
     reflections.water_refragtion.index = 0.85f;
 
-    reflections.mirror.color = eh::vec3( 1.0f, 1.0f ,1.0f );
+    reflections.mirror.color = eh::vec3( 0.8f, 0.8f ,0.8f );
 
     reflections.floor_diffuse.sample_count = 10;
     reflections.floor_diffuse.color = vec3(1,1,1);
