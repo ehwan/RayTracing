@@ -6,6 +6,8 @@
 namespace eh
 {
 
+// camera from eye position, look at position, and up vector
+// build basis vectors from look at and up
 class Eye
 {
 protected:

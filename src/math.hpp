@@ -1,7 +1,8 @@
 #pragma once
 
-#include <eigen3/Eigen/Dense>
+#include <Eigen/Dense>
 #include <utility>
+
 namespace eh {
   using vec2 = Eigen::Vector2f;
   using vec3 = Eigen::Vector3f;

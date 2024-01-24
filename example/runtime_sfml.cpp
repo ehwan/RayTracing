@@ -1,10 +1,3 @@
-// compile flags
-// -lsfml-window -lsfml-system -lsfml-graphics -O2
-#include "global.hpp"
-#include "reflection.hpp"
-#include "world.hpp"
-#include "lodepng.h"
-#include <iostream>
 #include <vector>
 
 #include <thread>
@@ -12,87 +5,50 @@
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
 
-#include "demo.hpp"
+#include "teapot_world.hpp"
+#include "geometry.hpp"
 
 // image size
 int WIDTH = 400;
 int HEIGHT = 400;
 
+const int thread_count = 16;
 
 sf::Texture texture;
 sf::Sprite sprite;
 
 std::thread render_thread;
 
-int WINDOW_WIDTH = 1000;
-int WINDOW_HEIGHT = 1000;
+int WINDOW_WIDTH = 600;
+int WINDOW_HEIGHT = 600;
 sf::RenderWindow window;
 
 float dt = 0;
 
-SphereDemo world( WIDTH, HEIGHT );
-//MarchingCubesDemoWorld world(WIDTH,HEIGHT);
+TeapotDemo world( WIDTH, HEIGHT, thread_count );
 
-
-// move with WASDRF keys
+// move with WASD RF / Arrow Keys
 bool move()
 {
-  world.camera_light_sphere.center = world.camera.position();
   {
     float spd = 2.0f*dt;
     float anglespd = 1.0f*dt;
     if( sf::Keyboard::isKeyPressed( sf::Keyboard::S ) )
     {
-      if( sf::Mouse::isButtonPressed( sf::Mouse::Left ) )
-      {
-        auto angle = world.camera.angle();
-        angle.x() -= anglespd;
-        world.camera.angle(angle);
-        return true;
-      }else
-      {
-        world.camera.move(2,spd);
-        return true;
-      }
+      world.camera.move(2,spd);
+      return true;
     }else if( sf::Keyboard::isKeyPressed( sf::Keyboard::W ) )
     {
-      if( sf::Mouse::isButtonPressed( sf::Mouse::Left ) )
-      {
-        auto angle = world.camera.angle();
-        angle.x() += anglespd;
-        world.camera.angle(angle);
-        return true;
-      }else
-      {
-        world.camera.move(2,-spd);
-        return true;
-      }
+      world.camera.move(2,-spd);
+      return true;
     }else if( sf::Keyboard::isKeyPressed( sf::Keyboard::A ) )
     {
-      if( sf::Mouse::isButtonPressed( sf::Mouse::Left ) )
-      {
-        auto angle = world.camera.angle();
-        angle.y() += anglespd;
-        world.camera.angle(angle);
-        return true;
-      }else
-      {
-        world.camera.move(0,-spd);
-        return true;
-      }
+      world.camera.move(0,-spd);
+      return true;
     }else if( sf::Keyboard::isKeyPressed( sf::Keyboard::D ) )
     {
-      if( sf::Mouse::isButtonPressed( sf::Mouse::Left ) )
-      {
-        auto angle = world.camera.angle();
-        angle.y() -= anglespd;
-        world.camera.angle(angle);
-        return true;
-      }else
-      {
-        world.camera.move(0,+spd);
-        return true;
-      }
+      world.camera.move(0,+spd);
+      return true;
     }else if( sf::Keyboard::isKeyPressed( sf::Keyboard::R ) )
     {
       world.camera.move(1,spd);
@@ -100,6 +56,30 @@ bool move()
     }else if( sf::Keyboard::isKeyPressed( sf::Keyboard::F ) )
     {
       world.camera.move(1,-spd);
+      return true;
+    }else if( sf::Keyboard::isKeyPressed( sf::Keyboard::Up ) )
+    {
+      auto angle = world.camera.angle();
+      angle.x() += anglespd;
+      world.camera.angle(angle);
+      return true;
+    }else if( sf::Keyboard::isKeyPressed( sf::Keyboard::Down ) )
+    {
+      auto angle = world.camera.angle();
+      angle.x() -= anglespd;
+      world.camera.angle(angle);
+      return true;
+    }else if( sf::Keyboard::isKeyPressed( sf::Keyboard::Left ) )
+    {
+      auto angle = world.camera.angle();
+      angle.y() += anglespd;
+      world.camera.angle(angle);
+      return true;
+    }else if( sf::Keyboard::isKeyPressed( sf::Keyboard::Right ) )
+    {
+      auto angle = world.camera.angle();
+      angle.y() -= anglespd;
+      world.camera.angle(angle);
       return true;
     }
     return false;
@@ -109,13 +89,20 @@ bool move()
 int main()
 {
   bool rendering_loop = true;
+  bool clear_flag = false;
   // rendering thread
   render_thread = std::thread(
       [&]()
       {
         while( rendering_loop )
         {
-          world.render_once_balance();
+          if( clear_flag )
+          {
+            clear_flag = false;
+            world.clear_framebuffer();
+          }
+          world.render();
+          world.rebalance_thread_range();
         }
       }
   );
@@ -148,7 +135,7 @@ int main()
     // if not move, accumulate to current framebuffer
     if( move() )
     {
-      world.clear_framebuffer();
+      clear_flag = true;
     }
     window.clear();
 
