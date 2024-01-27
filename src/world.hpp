@@ -149,6 +149,7 @@ public:
         if( c.first.raycast(ray, tmin, tmax) == false ){ continue; }
         if( cur.t < tmin ){ continue; }
         auto raycast_result = c.second.geometry->raycast( ray );
+        if( std::abs(raycast_result.normal.dot(ray.direction())) < GeometryObject::EPSILON ){ continue; }
         if( raycast_result.surface && raycast_result.t < cur.t )
         {
           cur = raycast_result;
