@@ -24,11 +24,15 @@ std::vector<Triangle> load_stl_binary( std::ifstream &ifs, bool vertex_normal )
   {
     vec3 normal;
     ifs.read( (char*)&normal, 12 );
-    normal.normalize();
     ifs.read( (char*)triangles[i].p0.data(), 12 );
     ifs.read( (char*)triangles[i].p1.data(), 12 );
     ifs.read( (char*)triangles[i].p2.data(), 12 );
-    triangles[i].n0 = triangles[i].n1 = triangles[i].n2 = normal;
+
+    vec3 a = triangles[i].p1 - triangles[i].p0;
+    vec3 b = triangles[i].p2 - triangles[i].p0;
+    vec3 c = a.cross(b);
+    c.normalize();
+    triangles[i].n0 = triangles[i].n1 = triangles[i].n2 = c;
     ifs.seekg( 2, std::ios::cur );
   }
 

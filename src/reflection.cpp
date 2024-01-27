@@ -17,9 +17,9 @@ vec3 FuzzyMirrorReflection::get_color( Ray const& r, RayHit const& hit, World &w
   vec3 color = vec3::Zero();
   vec3 reflection = hit.reflect(r);
   int cnt = 0;
-  for( int i=0; i<sample_count; ++i )
+  for( int i=0; i<this->sample_count; ++i )
   {
-    float angle = (1-std::sin( w.random01(r.thread_id)*w.PI/2.0f ))*w.PI/2.0f*fuzzyness;
+    float angle = std::sin( w.random01(r.thread_id)*w.PI/2.0f )*w.PI/2.0f*this->fuzzyness;
     float angle2 = w.random01(r.thread_id)*w.PI*2;
     float x = std::cos(angle2)*std::sin(angle);
     float y = std::sin(angle2)*std::sin(angle);
@@ -29,7 +29,7 @@ vec3 FuzzyMirrorReflection::get_color( Ray const& r, RayHit const& hit, World &w
 
     Ray newray( hit.point(r), (x*unitx+y*unity+z*reflection).normalized(), r.thread_id );
     newray.bounce = r.bounce + 0.3;
-    // if( newray.direction().dot(hit.normal) < 0 ){ continue; }
+    if( newray.direction().dot(hit.normal) < 0 ){ continue; }
 
     ++cnt;
     color += w.get_color(newray);

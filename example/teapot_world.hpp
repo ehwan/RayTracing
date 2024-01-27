@@ -65,7 +65,7 @@ public:
     this->max_bounce = 3;
     this->init( w, h, thread_count );
 
-    geometries.teapot = eh::load_stl( TEAPOT_PATH );
+    geometries.teapot = eh::load_stl( TEAPOT_PATH, true );
     for( auto &t : geometries.teapot )
     {
       t.p0.x() += 0.2f;
@@ -84,10 +84,10 @@ public:
     this->insert( {&geometries.floor2, &reflections.floor} );
     for( auto &t : geometries.teapot )
     {
-      this->insert( {&t, &reflections.mirror} );
+      this->insert( {&t, &reflections.diffusive} );
     }
-    reflections.fuzzy_mirror.fuzzyness = 0.03f;
-    reflections.fuzzy_mirror.sample_count = 3;
+    reflections.fuzzy_mirror.fuzzyness = 0.05f;
+    reflections.fuzzy_mirror.sample_count = 5;
     reflections.fuzzy_mirror.color = vec3(0.8f,0.8f,0.8f);
 
     reflections.combine.r1 = &reflections.water_refragtion;
@@ -96,13 +96,13 @@ public:
     reflections.combine.s2 = 0.5f;
 
     // camera position init
-    this->camera.position( {0.2,1.0,2.0} );
-    this->camera.angle( {-0.3,-0.0,0} );
+    this->camera.position( {0.2,4.0,2.0} );
+    this->camera.angle( {-0.5,-0.0,0} );
     this->camera.perspective( 3.141592f/2.0f, 1.0f, 1.0f );
     this->camera.move( 2, 0.5f );
 
     // objects
-    reflections.diffusive.color = eh::vec3( 1.2f, 0.8f, 0.6f );
+    reflections.diffusive.color = eh::vec3( 0.8f, 0.6f, 0.4f );
     reflections.diffusive.sample_count = 10;
 
     reflections.water_refragtion.color = eh::vec3( 0.6f, 0.8f, 1.0f );
