@@ -27,68 +27,69 @@ public:
     position_.setZero();
   }
 
-  vec3 const& axis( unsigned int i ) const
+  vec3 const& axis(unsigned int i) const
   {
-    return axis_[ i ];
+    return axis_[i];
   }
   vec3 const& position() const
   {
     return position_;
   }
-  void position( Eigen::Vector3f const& p )
+  void position(Eigen::Vector3f const& p)
   {
     position_ = p;
   }
 
   // move along i'th axis
-  void move( unsigned int i , float factor=1.0f )
+  void move(unsigned int i, float factor = 1.0f)
   {
-    position_ += axis_[ i ] * factor;
+    position_ += axis_[i] * factor;
   }
 
-  void set( Eigen::Vector3f const& x , Eigen::Vector3f const& y , Eigen::Vector3f const& z )
+  void set(Eigen::Vector3f const& x,
+           Eigen::Vector3f const& y,
+           Eigen::Vector3f const& z)
   {
     axis_[0] = x;
     axis_[1] = y;
     axis_[2] = z;
   }
-  void look( Eigen::Vector3f const& to , Eigen::Vector3f const& up )
+  void look(Eigen::Vector3f const& to, Eigen::Vector3f const& up)
   {
     // z axis
     axis_[2] = -to;
 
     // x = y cross z
-    axis_[0] = up.cross( axis_[2] ).normalized();
+    axis_[0] = up.cross(axis_[2]).normalized();
 
     // y = z cross x
-    axis_[1] = axis_[2].cross( axis_[0] );
+    axis_[1] = axis_[2].cross(axis_[0]);
   }
-  void look( Eigen::Vector3f const& to )
+  void look(Eigen::Vector3f const& to)
   {
-    look( to , Eigen::Vector3f::UnitY() );
+    look(to, Eigen::Vector3f::UnitY());
   }
-  void perspective( float theta, float aspect_ratio, float near )
+  void perspective(float theta, float aspect_ratio, float near)
   {
-    tan_theta_ = std::tan( theta*0.5f );
+    tan_theta_ = std::tan(theta * 0.5f);
     aspect_ratio_ = aspect_ratio;
     near_ = near;
   }
-  vec3 operator()( vec3 p ) const
+  vec3 operator()(vec3 p) const
   {
-    return p.x()*axis_[0] + p.y()*axis_[1] + p.z()*axis_[2] + position_;
+    return p.x() * axis_[0] + p.y() * axis_[1] + p.z() * axis_[2] + position_;
   }
-  vec3 operator()( float i, float j ) const
+  vec3 operator()(float i, float j) const
   {
-    float H = tan_theta_*near_;
-    float W = H*aspect_ratio_;
-    vec3 p = { W*(i-0.5f), -H*(j-0.5f), -near_ };
+    float H = tan_theta_ * near_;
+    float W = H * aspect_ratio_;
+    vec3 p = { W * (i - 0.5f), -H * (j - 0.5f), -near_ };
     return operator()(p);
   }
 };
 
 // camera with angle from each axis
-class EyeAngle
-  : public Eye
+class EyeAngle : public Eye
 {
 protected:
   Eigen::Array3f angle_;
@@ -103,22 +104,20 @@ public:
   {
     return angle_;
   }
-  void angle( Eigen::Array3f const& arr )
+  void angle(Eigen::Array3f const& arr)
   {
-    angle_.x() = std::min( 1.57079632679f , std::max( arr.x() , -1.57079632679f ) );
-    angle_.y() = std::fmod( arr.y() , 6.28318530718f );
-    angle_.z() = std::min( 3.14159265359f , std::max( arr.z() , -3.14159265359f ) );
+    angle_.x() = std::min(1.57079632679f, std::max(arr.x(), -1.57079632679f));
+    angle_.y() = std::fmod(arr.y(), 6.28318530718f);
+    angle_.z() = std::min(3.14159265359f, std::max(arr.z(), -3.14159265359f));
 
     const Eigen::Array3f cos = angle_.cos();
     const Eigen::Array3f sin = angle_.sin();
 
-    const Eigen::Vector3f axis1{
-      cos.y()*cos.z() , cos.y()*sin.z() , -sin.y()
-    };
-    const Eigen::Vector3f axis3{
-      cos.x()*sin.y() , -sin.x() , cos.x()*cos.y()
-    };
-    set( axis1 , axis3.cross( axis1 ) , axis3 );
+    const Eigen::Vector3f axis1 { cos.y() * cos.z(), cos.y() * sin.z(),
+                                  -sin.y() };
+    const Eigen::Vector3f axis3 { cos.x() * sin.y(), -sin.x(),
+                                  cos.x() * cos.y() };
+    set(axis1, axis3.cross(axis1), axis3);
   }
 };
 
